@@ -11,7 +11,7 @@ const Home = ({ toggleTheme }: { toggleTheme: () => void }) => {
       <div className="">
         <div className="absolute top-[20%] left-[5%] w-80 h-80 bg-indigo-400 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-2xl opacity-30 animate-blob" style={{ animationDelay: "0s" }} />
         <div className="absolute top-[40%] left-[30%] w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-2xl opacity-30 animate-blob" style={{ animationDelay: "2s" }} />
-        <div className="absolute top-[30%] right-[12%] w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-2xl opacity-30 animate-blob" style={{ animationDelay: "4s" }} />
+        <div className="absolute top-[30%] right-[12%] w-72 h-72 bg-teal-400 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-2xl opacity-30 animate-blob" style={{ animationDelay: "4s" }} />
       </div>
 
       {/* Main Section */}
