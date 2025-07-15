@@ -1,10 +1,13 @@
 
-import React, { useState } from 'react';
-import { ArrowLeft, Users, BarChart3, Mail, Megaphone, User, Menu, Sun, Moon, Plus, Filter, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, Users, BarChart3, Mail, Megaphone, User, Menu, Sun, Moon, Plus, Filter, MoreVertical, Edit, Trash2, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 
 interface ListMember {
   id: string;
@@ -24,139 +27,605 @@ interface ContactList {
 }
 
 interface ListsProps {
-    toggleTheme: () => void;
-    isDarkMode: boolean;
+  toggleTheme: () => void;
+  isDarkMode: boolean;
 }
 
 const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [selectedList, setSelectedList] = useState<ContactList | null>(null);
   const [showListDetail, setShowListDetail] = useState(false);
+  const [contactLists, setContactLists] = useState<ContactList[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [memberForm, setMemberForm] = useState({
+    fullName: '',
+    email: '',
+    linkedin: '',
+    company: '',
+    position: '',
+    avatar: ''
+  });
 
-  // Sample data - this will be replaced with backend API calls in the future
-  const [contactLists, setContactLists] = useState<ContactList[]>([
-    {
-      id: 'prospects-q1',
-      name: 'Q1 Prospects',
-      memberCount: 125,
-      members: [
-        {
-          id: '1',
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face',
-          fullName: 'John Doe',
-          linkedin: 'https://www.linkedin.com/in/johndoe',
-          company: 'Innovate Corp',
-          position: 'Marketing Manager',
-          email: 'john.doe@innovate.com'
-        },
-        {
-          id: '2',
-          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64&h=64&fit=crop&crop=face',
-          fullName: 'Jane Smith',
-          linkedin: 'https://www.linkedin.com/in/janesmith',
-          company: 'Tech Solutions Ltd.',
-          position: 'Sales Director',
-          email: 'jane.smith@techsolutions.com'
-        },
-        {
-          id: '3',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face',
-          fullName: 'Alex Jones',
-          linkedin: 'https://www.linkedin.com/in/alexjones',
-          company: 'Future Systems',
-          position: 'CEO',
-          email: 'alex.jones@futuresystems.com'
-        }
-      ]
-    },
-    {
-      id: 'conference-attendees',
-      name: 'Conference Attendees',
-      memberCount: 88,
-      members: [
-        {
-          id: '4',
-          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face',
-          fullName: 'Emily White',
-          linkedin: 'https://www.linkedin.com/in/emilywhite',
-          company: 'Data Insights',
-          position: 'Data Analyst',
-          email: 'emily.white@datainsights.co'
-        },
-        {
-          id: '5',
-          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=64&h=64&fit=crop&crop=face',
-          fullName: 'Michael Brown',
-          linkedin: 'https://www.linkedin.com/in/michaelbrown',
-          company: 'CloudNet',
-          position: 'Solutions Architect',
-          email: 'michael.brown@cloudnet.io'
-        }
-      ]
-    },
-    {
-      id: 'newsletter-subscribers',
-      name: 'Newsletter Subscribers',
-      memberCount: 312,
-      members: [
-        {
-          id: '6',
-          avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=64&h=64&fit=crop&crop=face',
-          fullName: 'Sarah Miller',
-          linkedin: 'https://www.linkedin.com/in/sarahmiller',
-          company: 'MarketPro',
-          position: 'Content Strategist',
-          email: 's.miller@marketpro.agency'
-        },
-        {
-          id: '7',
-          avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=64&h=64&fit=crop&crop=face',
-          fullName: 'David Wilson',
-          linkedin: 'https://www.linkedin.com/in/davidwilson',
-          company: 'Connect Hub',
-          position: 'Community Manager',
-          email: 'david.w@connecthub.com'
-        }
-      ]
-    },
-    {
-      id: 'webinar-leads',
-      name: 'Webinar Leads',
-      memberCount: 56,
-      members: [
-        {
-          id: '8',
-          avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=64&h=64&fit=crop&crop=face',
-          fullName: 'Olivia Taylor',
-          linkedin: 'https://www.linkedin.com/in/oliviataylor',
-          company: 'LeadGenify',
-          position: 'Growth Hacker',
-          email: 'olivia@leadgenify.com'
-        }
-      ]
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<ListMember | null>(null);
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    email: '',
+    linkedin: '',
+    company: '',
+    position: '',
+    avatar: ''
+  });
+
+  const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+
+  // Get auth token from localStorage
+  const getAuthToken = () => {
+    return localStorage.getItem('token');
+  };
+
+  const getAuthHeaders = () => {
+    const token = getAuthToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  };
+
+  // LinkedIn URL validation function
+  const isValidLinkedInUrl = (url: string) => {
+    const pattern = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-]+\/?$/;
+    return pattern.test(url);
+  };
+
+  // Fetch lists from API
+  const fetchLists = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch(`${API_BASE_URL}/lists`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch lists');
+      }
+
+      const data = await response.json();
+      setContactLists(data.map((list: any) => ({
+        ...list,
+        members: [] // Members will be loaded when list is selected
+      })));
+    } catch (err) {
+      console.error('Error fetching lists:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch lists');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
+  // Fetch members for a specific list
+  const fetchListMembers = async (listId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/lists/${listId}/members`, {
+        headers: getAuthHeaders()
+      });
 
-  const handleListClick = (list: ContactList) => {
-    setSelectedList(list);
-    setShowListDetail(true);
+      if (!response.ok) {
+        throw new Error('Failed to fetch members');
+      }
+
+      const members = await response.json();
+      return members.map((member: any) => ({
+        id: member._id,
+        avatar: member.avatar,
+        fullName: member.fullName,
+        linkedin: member.linkedin,
+        company: member.company,
+        position: member.position,
+        email: member.email
+      }));
+    } catch (err) {
+      console.error('Error fetching members:', err);
+      throw err;
+    }
+  };
+
+  // Add new member
+  const addMember = async (listId: string, memberData: any) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/lists/${listId}/members`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(memberData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add member');
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  // Update member
+  const updateMember = async (listId: string, memberId: string, memberData: any) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/lists/${listId}/members/${memberId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(memberData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update member');
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  // Delete member
+  const deleteMember = async (listId: string, memberId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/lists/${listId}/members/${memberId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete member');
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  // Load initial data
+  useEffect(() => {
+    fetchLists();
+  }, []);
+
+  const handleListClick = async (list: ContactList) => {
+    try {
+      setLoading(true);
+      const members = await fetchListMembers(list.id);
+      const updatedList = { ...list, members };
+      setSelectedList(updatedList);
+      setShowListDetail(true);
+    } catch (err) {
+      setError('Failed to load list members');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBackToLists = () => {
     setShowListDetail(false);
     setSelectedList(null);
+    fetchLists(); // Refresh the lists to update member counts
   };
+
+  const resetMemberForm = () => {
+    setMemberForm({
+      fullName: '',
+      email: '',
+      linkedin: '',
+      company: '',
+      position: '',
+      avatar: ''
+    });
+    setEditingMember(null);
+  };
+
+  const handleAddMember = async () => {
+    if (!isValidLinkedInUrl(linkedinUrl)) {
+      alert('Please enter a valid LinkedIn URL');
+      return;
+    }
+
+    try {
+      // Extract profile name from URL
+      const profileName = linkedinUrl.split('/in/')[1].replace('/', '');
+
+      // Generate avatar from name
+      const nameParts = profileName.split('-').map(part => part.charAt(0)).join('');
+      const avatar = `https://ui-avatars.com/api/?name=${nameParts}&background=random`;
+
+
+      const newMember = {
+        avatar,
+        fullName: profileName.replace(/-/g, ' '),
+        linkedin: linkedinUrl,
+        company: 'New Company',
+        position: 'New Position',
+        email: `${profileName}@example.com`
+      };
+
+      if (!selectedList) return;
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/lists/${selectedList.id}/members`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(newMember)
+      });
+
+      if (!response.ok) throw new Error('Failed to add member');
+
+      const addedMember = await response.json();
+
+      // Update UI
+      const updatedList = {
+        ...selectedList,
+        members: [...selectedList.members, {
+          id: addedMember.id,
+          ...newMember
+        }],
+        memberCount: selectedList.memberCount + 1
+      };
+
+      setSelectedList(updatedList);
+      setIsAddMemberDialogOpen(false);
+      setLinkedinUrl('');
+
+      // Update lists count
+      setContactLists(prev =>
+        prev.map(list =>
+          list.id === selectedList.id
+            ? { ...list, memberCount: list.memberCount + 1 }
+            : list
+        )
+      );
+    } catch (err) {
+      console.error('Error adding member:', err);
+      alert('Failed to add member: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  // Add after handleAddMember function
+  const handleEditClick = (member: ListMember) => {
+    setEditingMember(member);
+    setEditForm({
+      fullName: member.fullName,
+      email: member.email,
+      linkedin: member.linkedin,
+      company: member.company,
+      position: member.position,
+      avatar: member.avatar
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedList || !editingMember) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/lists/${selectedList.id}/members/${editingMember.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(editForm)
+      });
+
+      if (!response.ok) throw new Error('Failed to update member');
+
+      const updatedMember = await response.json();
+
+      // Update UI
+      const updatedMembers = selectedList.members.map(m =>
+        m.id === editingMember.id ? { ...updatedMember, id: m.id } : m
+      );
+
+      setSelectedList({
+        ...selectedList,
+        members: updatedMembers
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingMember(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update member');
+    }
+  };
+
+  const handleEditMember = (member: ListMember) => {
+    setMemberForm({
+      fullName: member.fullName,
+      email: member.email,
+      linkedin: member.linkedin,
+      company: member.company,
+      position: member.position,
+      avatar: member.avatar
+    });
+    setEditingMember(member);
+    setShowAddMemberModal(true);
+  };
+
+
+  // const handleDeleteMember = async (member: ListMember) => {
+  //   if (!selectedList) return;
+
+  //   if (window.confirm(`Are you sure you want to delete ${member.fullName}?`)) {
+  //     try {
+  //       await deleteMember(selectedList.id, member.id);
+
+  //       // Update the local state
+  //       const updatedMembers = selectedList.members.filter(m => m.id !== member.id);
+  //       setSelectedList({
+  //         ...selectedList,
+  //         members: updatedMembers
+  //       });
+
+  //       // Update the member count in the lists
+  //       setContactLists(prevLists =>
+  //         prevLists.map(list =>
+  //           list.id === selectedList.id
+  //             ? { ...list, memberCount: list.memberCount - 1 }
+  //             : list
+  //         )
+  //       );
+  //     } catch (err) {
+  //       alert(err instanceof Error ? err.message : 'Failed to delete member');
+  //     }
+  //   }
+  // };
+
+  // Replace existing handleDeleteMember function
+  const handleDeleteMember = async (member: ListMember) => {
+    if (!selectedList) return;
+
+    if (window.confirm(`Are you sure you want to delete ${member.fullName}?`)) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_BASE_URL}/lists/${selectedList.id}/members/${member.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to delete member');
+
+        // Update UI
+        const updatedMembers = selectedList.members.filter(m => m.id !== member.id);
+        setSelectedList({
+          ...selectedList,
+          members: updatedMembers,
+          memberCount: selectedList.memberCount - 1
+        });
+
+        // Update lists count
+        setContactLists(prev =>
+          prev.map(list =>
+            list.id === selectedList.id
+              ? { ...list, memberCount: list.memberCount - 1 }
+              : list
+          )
+        );
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Failed to delete member');
+      }
+    }
+  };
+
+  const handleSubmitMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedList) return;
+
+    try {
+      if (editingMember) {
+        // Update existing member
+        const updatedMember = await updateMember(selectedList.id, editingMember.id, memberForm);
+
+        const updatedMembers = selectedList.members.map(m =>
+          m.id === editingMember.id
+            ? { ...updatedMember, id: updatedMember.id }
+            : m
+        );
+
+        setSelectedList({
+          ...selectedList,
+          members: updatedMembers
+        });
+      } else {
+        // Add new member
+        const newMember = await addMember(selectedList.id, memberForm);
+
+        const updatedMembers = [...selectedList.members, { ...newMember, id: newMember.id }];
+        setSelectedList({
+          ...selectedList,
+          members: updatedMembers
+        });
+
+        // Update the member count in the lists
+        setContactLists(prevLists =>
+          prevLists.map(list =>
+            list.id === selectedList.id
+              ? { ...list, memberCount: list.memberCount + 1 }
+              : list
+          )
+        );
+      }
+
+      setShowAddMemberModal(false);
+      resetMemberForm();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save member');
+    }
+  };
+
+  // Add Member Modal
+  // const AddMemberModal = () => (
+  //   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  //     <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+  //       <div className="flex items-center justify-between mb-4">
+  //         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+  //           {editingMember ? 'Edit Member' : 'Add New Member'}
+  //         </h3>
+  //         <button
+  //           onClick={() => {
+  //             setShowAddMemberModal(false);
+  //             resetMemberForm();
+  //           }}
+  //           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+  //         >
+  //           <X className="w-5 h-5" />
+  //         </button>
+  //       </div>
+
+  //       <form onSubmit={handleSubmitMember} className="space-y-4">
+  //         <div>
+  //           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+  //             Full Name *
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={memberForm.fullName}
+  //             onChange={(e) => setMemberForm({ ...memberForm, fullName: e.target.value })}
+  //             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+  //             required
+  //           />
+  //         </div>
+
+  //         <div>
+  //           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+  //             Email *
+  //           </label>
+  //           <input
+  //             type="email"
+  //             value={memberForm.email}
+  //             onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
+  //             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+  //             required
+  //           />
+  //         </div>
+
+  //         <div>
+  //           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+  //             LinkedIn Profile
+  //           </label>
+  //           <input
+  //             type="url"
+  //             value={memberForm.linkedin}
+  //             onChange={(e) => setMemberForm({ ...memberForm, linkedin: e.target.value })}
+  //             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+  //           />
+  //         </div>
+
+  //         <div>
+  //           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+  //             Company
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={memberForm.company}
+  //             onChange={(e) => setMemberForm({ ...memberForm, company: e.target.value })}
+  //             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+  //           />
+  //         </div>
+
+  //         <div>
+  //           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+  //             Position
+  //           </label>
+  //           <input
+  //             type="text"
+  //             value={memberForm.position}
+  //             onChange={(e) => setMemberForm({ ...memberForm, position: e.target.value })}
+  //             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+  //           />
+  //         </div>
+
+  //         <div>
+  //           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+  //             Avatar URL
+  //           </label>
+  //           <input
+  //             type="url"
+  //             value={memberForm.avatar}
+  //             onChange={(e) => setMemberForm({ ...memberForm, avatar: e.target.value })}
+  //             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+  //             placeholder="Leave empty for auto-generated avatar"
+  //           />
+  //         </div>
+
+  //         <div className="flex justify-end space-x-3 pt-4">
+  //           <button
+  //             type="button"
+  //             onClick={() => {
+  //               setShowAddMemberModal(false);
+  //               resetMemberForm();
+  //             }}
+  //             className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+  //           >
+  //             Cancel
+  //           </button>
+  //           <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white">
+  //             {editingMember ? 'Update Member' : 'Add Member'}
+  //           </Button>
+  //         </div>
+  //       </form>
+  //     </div>
+  //   </div>
+  // );
+
+  if (loading && !showListDetail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading lists...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !showListDetail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <Button onClick={fetchLists} className="bg-purple-600 hover:bg-purple-700 text-white">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className={`min-h-screen flex w-full ${isDarkMode ? 'dark' : ''}`}>
-      <Sidebar 
-        isCollapsed={isSidebarCollapsed} 
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         toggleTheme={toggleTheme}
         isDarkMode={isDarkMode}
       />
-      
+
       <div className="flex-1 flex flex-col lg:ml-0">
         {/* Header */}
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4 lg:px-8">
@@ -169,7 +638,7 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                 <Menu className="w-5 h-5 text-gray-500" />
               </button>
               {showListDetail && selectedList && (
-                <button 
+                <button
                   onClick={handleBackToLists}
                   className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0"
                 >
@@ -180,19 +649,54 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                 {showListDetail && selectedList ? selectedList.name : 'Lists'}
               </h1>
             </div>
-            
+
             {/* Action buttons for list detail view */}
             {showListDetail && (
               <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3">
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white font-semibold h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 rounded-lg flex items-center shadow-md hover:shadow-lg transition-shadow duration-300 text-xs sm:text-sm">
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Add Member</span>
-                  <span className="sm:hidden">Add</span>
-                </Button>
-                <button className="text-gray-500 hover:text-gray-700 p-1.5 sm:p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200">
+                <Dialog open={isAddMemberDialogOpen} onOpenChange={setIsAddMemberDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => setIsAddMemberDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white font-semibold h-8 px-2 sm:h-9 sm:px-3 md:h-10 md:px-4 rounded-lg flex items-center shadow-md hover:shadow-lg transition-shadow duration-300 text-xs sm:text-sm">
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Add Member</span>
+                      <span className="sm:hidden">Add</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md text-black dark:text-white bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+                    <DialogHeader>
+                      <DialogTitle>Add New Member</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="linkedin-url">LinkedIn Profile URL</Label>
+                        <Input
+                          id="linkedin-url"
+                          type="url"
+                          placeholder="https://linkedin.com/in/username"
+                          value={linkedinUrl}
+                          onChange={(e) => setLinkedinUrl(e.target.value)}
+                          className={!isValidLinkedInUrl(linkedinUrl) && linkedinUrl.trim() ? "border-red-500 dark:border-red-400 text-black" : "text-black"}
+                        />
+                        {linkedinUrl.trim() && !isValidLinkedInUrl(linkedinUrl) && (
+                          <p className="text-red-500 dark:text-red-400 text-sm">
+                            Please enter a valid LinkedIn profile URL (e.g., https://linkedin.com/in/username)
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button variant="outline" onClick={() => setIsAddMemberDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button variant="outline" className='bg-purple-600 hover:bg-purple-700 text-white font-semibold' onClick={handleAddMember} disabled={!linkedinUrl.trim() || !isValidLinkedInUrl(linkedinUrl)}>
+                          Add Member
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <button className="text-gray-500 hover:text-gray-700 p-1.5 sm:p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors duration-200">
                   <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
-                <button className="text-gray-500 hover:text-gray-700 p-1.5 sm:p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200">
+                <button className="text-gray-500 hover:text-gray-700 p-1.5 sm:p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors duration-200">
                   <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
@@ -206,7 +710,7 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
             // Lists Overview
             <div className="space-y-6">
               {contactLists.map((list) => (
-                <Card 
+                <Card
                   key={list.id}
                   className="cursor-pointer hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-gray-800"
                   onClick={() => handleListClick(list)}
@@ -251,8 +755,8 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                             {selectedList.members.map((member, index) => (
                               <tr key={member.id} className={`${index !== selectedList.members.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''} hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150`}>
                                 <td className="py-3 px-4 whitespace-nowrap">
-                                  <img 
-                                    src={member.avatar} 
+                                  <img
+                                    src={member.avatar}
                                     alt={`${member.fullName} avatar`}
                                     className="w-10 h-10 rounded-full object-cover"
                                   />
@@ -263,9 +767,9 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                                   </span>
                                 </td>
                                 <td className="py-3 px-4 whitespace-nowrap">
-                                  <a 
-                                    href={member.linkedin} 
-                                    target="_blank" 
+                                  <a
+                                    href={member.linkedin}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline text-sm flex items-center"
                                   >
@@ -285,10 +789,10 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                                   {member.email}
                                 </td>
                                 <td className="py-3 px-4 whitespace-nowrap text-right">
-                                  <button className="text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 p-1 rounded-full transition-colors duration-200 mr-1">
+                                  <button onClick={() => handleEditClick(member)} className="text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 p-1 rounded-full transition-colors duration-200 mr-1">
                                     <Edit className="w-4 h-4" />
                                   </button>
-                                  <button className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-full transition-colors duration-200">
+                                  <button onClick={() => handleDeleteMember(member)} className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-full transition-colors duration-200">
                                     <Trash2 className="w-4 h-4" />
                                   </button>
                                 </td>
@@ -303,8 +807,8 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                         {selectedList.members.map((member) => (
                           <div key={member.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
                             <div className="flex items-start space-x-3">
-                              <img 
-                                src={member.avatar} 
+                              <img
+                                src={member.avatar}
                                 alt={`${member.fullName} avatar`}
                                 className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                               />
@@ -314,10 +818,10 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                                     {member.fullName}
                                   </h4>
                                   <div className="flex items-center space-x-2 flex-shrink-0">
-                                    <button className="text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 p-1 rounded-full transition-colors duration-200">
+                                    <button onClick={() => handleEditClick(member)} className="text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 p-1 rounded-full transition-colors duration-200">
                                       <Edit className="w-4 h-4" />
                                     </button>
-                                    <button className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-full transition-colors duration-200">
+                                    <button onClick={() => handleDeleteMember(member)} className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-full transition-colors duration-200">
                                       <Trash2 className="w-4 h-4" />
                                     </button>
                                   </div>
@@ -332,9 +836,9 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                                   <p className="text-gray-600 dark:text-gray-400">
                                     <span className="font-medium">Email:</span> {member.email}
                                   </p>
-                                  <a 
-                                    href={member.linkedin} 
-                                    target="_blank" 
+                                  <a
+                                    href={member.linkedin}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline inline-flex items-center"
                                   >
@@ -351,7 +855,7 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Responsive Pagination */}
                   <div className="pt-4 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600 dark:text-gray-400 space-y-3 sm:space-y-0">
                     <span className="text-center sm:text-left">
@@ -373,6 +877,188 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
           )}
         </main>
       </div>
+      {/* Add Member Dialog */}
+      {isAddMemberDialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Member
+              </h3>
+              <button
+                onClick={() => {
+                  setIsAddMemberDialogOpen(false);
+                  setLinkedinUrl('');
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  LinkedIn Profile URL *
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://linkedin.com/in/username"
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  className={`w-full px-3 py-2 border ${!isValidLinkedInUrl(linkedinUrl) && linkedinUrl.trim()
+                    ? "border-red-500 dark:border-red-400"
+                    : "border-gray-300 dark:border-gray-600"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white`}
+                />
+                {linkedinUrl.trim() && !isValidLinkedInUrl(linkedinUrl) && (
+                  <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                    Please enter a valid LinkedIn profile URL (e.g., https://linkedin.com/in/username)
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddMemberDialogOpen(false);
+                    setLinkedinUrl('');
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <Button
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  onClick={handleAddMember}
+                  disabled={!linkedinUrl.trim() || !isValidLinkedInUrl(linkedinUrl)}
+                >
+                  Add Member
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Member Dialog */}
+      {isEditDialogOpen && editingMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Member
+              </h3>
+              <button
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setEditingMember(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.fullName}
+                  onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  LinkedIn Profile
+                </label>
+                <input
+                  type="url"
+                  value={editForm.linkedin}
+                  onChange={(e) => setEditForm({ ...editForm, linkedin: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Company
+                </label>
+                <input
+                  type="text"
+                  value={editForm.company}
+                  onChange={(e) => setEditForm({ ...editForm, company: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Position
+                </label>
+                <input
+                  type="text"
+                  value={editForm.position}
+                  onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Avatar URL
+                </label>
+                <input
+                  type="url"
+                  value={editForm.avatar}
+                  onChange={(e) => setEditForm({ ...editForm, avatar: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder="Leave empty for auto-generated avatar"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditDialogOpen(false);
+                    setEditingMember(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <Button
+                  type="submit"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  Update Member
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -41,6 +41,7 @@ interface ProfileProps {
 const Profile = ({ toggleTheme, isDarkMode }: ProfileProps) => {
     const navigate = useNavigate();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     // Mock data - will be replaced with backend data
     const [userProfile] = useState<UserProfile>({
@@ -146,9 +147,11 @@ const Profile = ({ toggleTheme, isDarkMode }: ProfileProps) => {
                                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                                     <div className="relative">
                                         <Avatar className="w-24 h-24 sm:w-32 sm:h-32 border-4 border-purple-200">
-                                            <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
+                                            {/* <AvatarImage src={userProfile.avatar} alt={userProfile.name} /> */}
+                                            <AvatarImage src={user.picture} alt={user.name} />
                                             <AvatarFallback className="text-2xl sm:text-3xl">
-                                                {userProfile.name.split(' ').map(n => n[0]).join('')}
+                                                {/* {userProfile.name.split(' ').map(n => n[0]).join('')} */}
+                                                {user.name.split(' ')}
                                             </AvatarFallback>
                                         </Avatar>
                                         <button className="absolute bottom-0 right-0 bg-purple-600 text-white p-1.5 rounded-full hover:bg-purple-700 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
@@ -157,10 +160,12 @@ const Profile = ({ toggleTheme, isDarkMode }: ProfileProps) => {
                                     </div>
                                     <div className="flex-1 text-center sm:text-left">
                                         <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">
-                                            {userProfile.name}
+                                            {/* {userProfile.name} */}
+                                            {user.name}
                                         </h2>
                                         <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
-                                            {userProfile.email}
+                                            {/* {userProfile.email} */}
+                                            {user.email}
                                         </p>
                                         <button
                                             onClick={handleEditProfile}

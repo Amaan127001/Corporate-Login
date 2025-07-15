@@ -10,11 +10,13 @@ import {
     FileText,
     Image as ImageIcon,
     Menu,
-    ArrowLeft
+    ArrowLeft,
+    Plus
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
+import { Input } from "../components/ui/input";
 import EmojiPicker from '../components/EmojiPicker';
 import AttachmentUpload from '../components/AttachmentUpload';
 
@@ -59,6 +61,9 @@ const Mail = ({ toggleTheme, isDarkMode }: MailProps) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [replyAttachments, setReplyAttachments] = useState<Attachment[]>([]);
     const [showEmailContent, setShowEmailContent] = useState(false);
+    const [newEmailTo, setNewEmailTo] = useState('');
+    const [newEmailSubject, setNewEmailSubject] = useState('');
+    const [newEmailContent, setNewEmailContent] = useState('');
     const [mailData, setMailData] = useState<MailData>({
         emails: [
             {
@@ -177,6 +182,15 @@ John`,
         setShowEmailContent(true);
     };
 
+    const handleNewEmail = () => {
+        setMailData(prev => ({
+            ...prev,
+            emails: prev.emails.map(e => ({ ...e, isSelected: false })),
+            selectedEmail: null
+        }));
+        setShowEmailContent(true);
+    };
+
     const handleBackToList = () => {
         setShowEmailContent(false);
     };
@@ -192,6 +206,28 @@ John`,
         // TODO: Implement actual send functionality
         setReplyText('');
         setReplyAttachments([]);
+    };
+
+    const handleSendNewEmail = () => {
+        if (!newEmailTo.trim() || !newEmailSubject.trim() || !newEmailContent.trim()) return;
+
+        console.log('Sending new email:', {
+            to: newEmailTo,
+            subject: newEmailSubject,
+            content: newEmailContent,
+            attachments: replyAttachments
+        });
+
+        // TODO: Implement actual send functionality
+        setNewEmailTo('');
+        setNewEmailSubject('');
+        setNewEmailContent('');
+        setReplyAttachments([]);
+        setShowEmailContent(false);
+    };
+
+    const handleNewEmailEmojiSelect = (emoji: string) => {
+        setNewEmailContent(prev => prev + emoji);
     };
 
     const handleEmailAction = (action: string) => {
@@ -285,7 +321,7 @@ John`,
                             >
                                 <Menu className="w-5 h-5 text-gray-500" />
                             </button>
-                            {showEmailContent && mailData.selectedEmail && (
+                            {showEmailContent && (
                                 <button
                                     onClick={handleBackToList}
                                     className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0"
@@ -294,7 +330,7 @@ John`,
                                 </button>
                             )}
                             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
-                                {showEmailContent && mailData.selectedEmail ? mailData.selectedEmail.subject : 'Mails'}
+                                {showEmailContent && mailData.selectedEmail ? mailData.selectedEmail.subject : showEmailContent && !mailData.selectedEmail ? 'New Email' : 'Mails'}
                             </h1>
                             {isLoading && (
                                 <div className="flex items-center gap-2">
@@ -303,6 +339,16 @@ John`,
                                 </div>
                             )}
                         </div>
+                        {/* New Email Button - Only show when no email is selected */}
+                        {!showEmailContent && (
+                            <Button
+                                onClick={handleNewEmail}
+                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                <Plus className="w-4 h-4" />
+                                New Email
+                            </Button>
+                        )}
                     </div>
                 </header>
 
@@ -345,8 +391,8 @@ John`,
                                     key={email.id}
                                     onClick={() => handleEmailSelect(email)}
                                     className={`p-4 cursor-pointer transition-colors ${email.isSelected
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500'
-                                            : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -472,6 +518,33 @@ John`,
                                                 Best,<br />
                                                 [Your Name]
                                             </div>
+                                            {/* Action Buttons within the message */}
+                                            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 lg:gap-6 mt-4 pt-3 border-t border-blue-200 dark:border-blue-700">
+                                                <Button
+                                                    className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs sm:text-sm"
+                                                    size="sm"
+                                                >
+                                                    ✓ Approve
+                                                </Button>
+                                                <Button
+                                                    className="bg-blue-500 text-white hover:bg-blue-600 text-xs sm:text-sm"
+                                                    size="sm"
+                                                >
+                                                    ✏️ Edit
+                                                </Button>
+                                                <Button
+                                                    className="bg-purple-500 hover:bg-purple-600 text-white text-xs sm:text-sm"
+                                                    size="sm"
+                                                >
+                                                    🔄 Regenerate
+                                                </Button>
+                                                <Button
+                                                    className="bg-gray-400 text-black hover:bg-gray-500 text-xs sm:text-sm"
+                                                    size="sm"
+                                                >
+                                                    ⏭️ Skip
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -556,6 +629,63 @@ John`,
                                     </div>
                                 </div>
                             </>
+                        ) : showEmailContent ? (
+                            <div className="flex-1 flex flex-col">
+                                {/* New Email Header */}
+                                <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                    <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                                        Compose New Email
+                                    </h2>
+                                    <div className="space-y-4">
+                                        <Input
+                                            type="email"
+                                            placeholder="To: recipient@example.com"
+                                            value={newEmailTo}
+                                            onChange={(e) => setNewEmailTo(e.target.value)}
+                                            className="w-full dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+                                        />
+                                        <Input
+                                            type="text"
+                                            placeholder="Subject"
+                                            value={newEmailSubject}
+                                            onChange={(e) => setNewEmailSubject(e.target.value)}
+                                            className="w-full dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* New Email Content */}
+                                <div className="flex-1 p-6">
+                                    <Textarea
+                                        value={newEmailContent}
+                                        onChange={(e) => setNewEmailContent(e.target.value)}
+                                        placeholder="Write your email..."
+                                        className="w-full min-h-[300px] resize-none dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+                                    />
+                                </div>
+
+                                {/* New Email Compose Section */}
+                                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                    <AttachmentUpload
+                                        attachments={replyAttachments}
+                                        onAttachmentAdd={handleAttachmentAdd}
+                                        onAttachmentRemove={handleAttachmentRemove}
+                                    />
+
+                                    <div className="flex justify-between items-center mt-3">
+                                        <div className="flex items-center space-x-2">
+                                            <EmojiPicker onEmojiSelect={handleNewEmailEmojiSelect} />
+                                        </div>
+                                        <Button
+                                            onClick={handleSendNewEmail}
+                                            disabled={!newEmailTo.trim() || !newEmailSubject.trim() || !newEmailContent.trim()}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                                        >
+                                            Send Email
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
                         ) : (
                             <div className="flex-1 flex items-center justify-center">
                                 <p className="text-gray-500 dark:text-gray-400">Select an email to view its content</p>

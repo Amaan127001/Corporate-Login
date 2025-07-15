@@ -66,7 +66,7 @@ const Campaigns = ({ toggleTheme, isDarkMode }: CampProps) => {
                 isDarkMode={isDarkMode}
             />
 
-            <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-800 transition-colors duration-300 text-gray-800 dark:text-gray-200">
+            <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 transition-colors duration-300 text-gray-800 dark:text-gray-200">
                 <div className="w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 ">
                     {/* Mobile menu button */}
                     <button
@@ -89,7 +89,7 @@ const Campaigns = ({ toggleTheme, isDarkMode }: CampProps) => {
                     {/* Campaign Mode Cards */}
                     <div className="grid md:grid-cols-2 gap-6 sm:gap-8 mb-12">
                         {/* Copilot Mode */}
-                        <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg">
+                        <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg bg-white dark:bg-gray-800 p-6 rounded-lg">
                             <CardHeader className="pb-4">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/20">
@@ -119,7 +119,7 @@ const Campaigns = ({ toggleTheme, isDarkMode }: CampProps) => {
                         </Card>
 
                         {/* Autopilot Mode */}
-                        <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg">
+                        <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg bg-white dark:bg-gray-800 p-6 rounded-lg">
                             <CardHeader className="pb-4">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/20">
@@ -158,7 +158,7 @@ const Campaigns = ({ toggleTheme, isDarkMode }: CampProps) => {
                             {learnMoreItems.map((item, index) => (
                                 <Card
                                     key={index}
-                                    className="cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-1"
+                                    className="cursor-pointer transition-all duration-300 hover:shadow-md hover:-translate-y-1 bg-white dark:bg-gray-800"
                                 >
                                     <CardContent className="p-6">
                                         <div className={`inline-flex p-3 rounded-lg ${item.bgColor} mb-4`}>
