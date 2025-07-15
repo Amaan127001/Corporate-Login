@@ -1,0 +1,98 @@
+[
+    {
+      "defaultListId": "prospects-q1",
+      "name": "Q1 Prospects",
+      "members": [
+            {
+          "id": "1",
+          "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face",
+          "fullName": "John Doe",
+          "linkedin": "https://www.linkedin.com/in/johndoe",
+          "company": "Innovate Corp",
+          "position": "Marketing Manager",
+          "email": "john.doe@innovate.com"
+            },
+            {
+          "id": "2",
+          "avatar": "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64&h=64&fit=crop&crop=face",
+          "fullName": "Jane Smith",
+          "linkedin": "https://www.linkedin.com/in/janesmith",
+          "company": "Tech Solutions Ltd.",
+          "position": "Sales Director",
+          "email": "jane.smith@techsolutions.com"
+            },
+            {
+          "id": "3",
+          "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face",
+          "fullName": "Alex Jones",
+          "linkedin": "https://www.linkedin.com/in/alexjones",
+          "company": "Future Systems",
+          "position": "CEO",
+          "email": "alex.jones@futuresystems.com"
+            }
+        ]
+    },
+    {
+      "defaultListId": "conference-attendees",
+      "name": "Conference Attendees",
+      "members": [
+            {
+          "id": "4",
+          "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face",
+          "fullName": "Emily White",
+          "linkedin": "https://www.linkedin.com/in/emilywhite",
+          "company": "Data Insights",
+          "position": "Data Analyst",
+          "email": "emily.white@datainsights.co"
+            },
+            {
+          "id": "5",
+          "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=64&h=64&fit=crop&crop=face",
+          "fullName": "Michael Brown",
+          "linkedin": "https://www.linkedin.com/in/michaelbrown",
+          "company": "CloudNet",
+          "position": "Solutions Architect",
+          "email": "michael.brown@cloudnet.io"
+            }
+        ]
+    },
+    {
+      "defaultListId": "newsletter-subscribers",
+      "name": "Newsletter Subscribers",
+      "members": [
+            {
+          "id": "6",
+          "avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=64&h=64&fit=crop&crop=face",
+          "fullName": "Sarah Miller",
+          "linkedin": "https://www.linkedin.com/in/sarahmiller",
+          "company": "MarketPro",
+          "position": "Content Strategist",
+          "email": "s.miller@marketpro.agency"
+            },
+            {
+          "id": "7",
+          "avatar": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=64&h=64&fit=crop&crop=face",
+          "fullName": "David Wilson",
+          "linkedin": "https://www.linkedin.com/in/davidwilson",
+          "company": "Connect Hub",
+          "position": "Community Manager",
+          "email": "david.w@connecthub.com"
+            }
+        ]
+    },
+    {
+      "defaultListId": "webinar-leads",
+      "name": "Webinar Leads",
+      "members": [
+            {
+          "id": "8",
+          "avatar": "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=64&h=64&fit=crop&crop=face",
+          "fullName": "Olivia Taylor",
+          "linkedin": "https://www.linkedin.com/in/oliviataylor",
+          "company": "LeadGenify",
+          "position": "Growth Hacker",
+          "email": "olivia@leadgenify.com"
+            }
+        ]
+    }
+]
