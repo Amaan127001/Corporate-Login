@@ -39,7 +39,7 @@ function AppRoutes() {
         return;
       }
       try {
-        const resp = await fetch('http://localhost:4000/me', {
+        const resp = await fetch('https://ingeniumai.onrender.com/me', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!resp.ok) throw new Error('Not authenticated');

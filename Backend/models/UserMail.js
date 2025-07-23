@@ -1,5 +1,4 @@
-// models/UserMail.js
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const attachmentSchema = new mongoose.Schema({
   id: {
@@ -119,4 +118,4 @@ userMailSchema.index({ userId: 1, sentAt: -1 });
 userMailSchema.index({ conversationId: 1, sentAt: 1 });
 userMailSchema.index({ senderEmail: 1, recipientEmail: 1 });
 
-module.exports = mongoose.model('UserMail', userMailSchema);
+export default mongoose.model('UserMail', userMailSchema);

@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "@radix-ui/react-label": "^2.1.7"
+    "@radix-ui/react-label": "^2.1.7",
+    "date-fns": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/date-fns": "^2.5.3"
   }
 }

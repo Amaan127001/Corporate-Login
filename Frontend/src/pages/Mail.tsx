@@ -19,6 +19,9 @@ import { Textarea } from "../components/ui/textarea";
 import { Input } from "../components/ui/input";
 import EmojiPicker from '../components/EmojiPicker';
 import AttachmentUpload from '../components/AttachmentUpload';
+import { format } from 'date-fns';
+import { useAuth } from '../context/AuthContext';
+import axios from 'axios';
 
 interface Attachment {
     id: string;
@@ -26,6 +29,7 @@ interface Attachment {
     size: string;
     type: 'pdf' | 'image' | 'document';
     file?: File;
+    url?: string;
 }
 
 interface Email {
@@ -39,6 +43,7 @@ interface Email {
     isSelected?: boolean;
     content?: string;
     attachments?: Attachment[];
+    isRead?: boolean;
 }
 
 interface MailData {
@@ -54,6 +59,12 @@ interface MailProps {
 
 
 const Mail = ({ toggleTheme, isDarkMode }: MailProps) => {
+    const auth = useAuth();
+    const user = auth.currentUser;
+    const API_URL = process.env.REACT_APP_API_URL;
+    // Then use `${API_URL}/api/mail` in fetch calls
+    // const user = JSON.parse(localStorage.getItem('user') || '{}');
+
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -64,6 +75,7 @@ const Mail = ({ toggleTheme, isDarkMode }: MailProps) => {
     const [newEmailTo, setNewEmailTo] = useState('');
     const [newEmailSubject, setNewEmailSubject] = useState('');
     const [newEmailContent, setNewEmailContent] = useState('');
+    const [isSending, setIsSending] = useState(false);
     const [mailData, setMailData] = useState<MailData>({
         emails: [
             {
@@ -137,14 +149,6 @@ John`,
         selectedEmail: null
     });
 
-    // useEffect(() => {
-    //     if (isDarkMode) {
-    //         document.documentElement.classList.add('dark');
-    //     } else {
-    //         document.documentElement.classList.remove('dark');
-    //     }
-    // }, [isDarkMode]);
-
     // Set selected email on component mount
     useEffect(() => {
         const selectedEmail = mailData.emails.find(email => email.isSelected);
@@ -153,30 +157,83 @@ John`,
         }
     }, []);
 
-    // const toggleTheme = () => {
-    //     setIsDarkMode(!isDarkMode);
-    // };
+    // After marking as read
+    useEffect(() => {
+        if (mailData.selectedEmail && !mailData.selectedEmail.isRead && user?.token) {
+            fetch(`${API_URL}/api/mail/${mailData.selectedEmail.id}/read`, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${user.token}`
+                }
+            });
 
+            // Update local state immediately
+            setMailData(prev => ({
+                ...prev,
+                emails: prev.emails.map(e =>
+                    e.id === mailData.selectedEmail?.id ? { ...e, isRead: true } : e
+                ),
+                selectedEmail: prev.selectedEmail ?
+                    { ...prev.selectedEmail, isRead: true } : null
+            }));
+        }
+    }, [mailData.selectedEmail, user?.token]);
+
+    // Define fetchMailData so it can be used elsewhere in the component
     const fetchMailData = async () => {
+        if (!user?.token) return;
         setIsLoading(true);
-        setError(null);
         try {
-            console.log('Fetching mail data...', { searchQuery });
-            // TODO: Replace with actual API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log('Mail data fetched successfully');
+            const response = await fetch('https://ingeniumai.onrender.com/api/mail', {
+                headers: { Authorization: `Bearer ${user.token}` }
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch mail data');
+
+            const data = await response.json();
+            setMailData({
+                emails: data.map(formatEmail),
+                selectedEmail: null
+            });
         } catch (err) {
-            console.error('Error fetching mail data:', err);
             setError('Failed to fetch mail data');
         } finally {
             setIsLoading(false);
         }
     };
 
+    // Fetch mail data on component mount or when user changes
+    useEffect(() => {
+        fetchMailData();
+    }, [user]);
+
+    // Helper function to format email
+    const formatEmail = (mail: any): Email => ({
+        id: mail.id,  // Use mail.id instead of mail._id
+        sender: mail.sender,
+        senderEmail: mail.senderEmail,
+        subject: mail.subject,
+        preview: mail.preview,
+        time: format(new Date(mail.sentAt), 'hh:mm a'),
+        avatar: mail.avatar,
+        content: mail.content,
+        attachments: mail.attachments?.map((att: any) => ({
+            id: att.id,
+            name: att.name,
+            size: att.size,
+            type: att.type,
+            url: att.url
+        })),
+        isRead: mail.isRead
+    });
+
     const handleEmailSelect = (email: Email) => {
         setMailData(prev => ({
             ...prev,
-            emails: prev.emails.map(e => ({ ...e, isSelected: e.id === email.id })),
+            emails: prev.emails.map(e => ({
+                ...e,
+                isSelected: e.id === email.id
+            })),
             selectedEmail: email
         }));
         setShowEmailContent(true);
@@ -195,35 +252,80 @@ John`,
         setShowEmailContent(false);
     };
 
-    const handleSendReply = () => {
-        if (!replyText.trim()) return;
+    const handleSendReply = async () => {
+        if (!replyText.trim() || !mailData.selectedEmail || !user?.token) return;
 
-        console.log('Sending reply:', {
-            text: replyText,
-            attachments: replyAttachments
-        });
+        try {
+            const response = await fetch('https://ingeniumai.onrender.com/api/mail/reply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${user.token}`
+                },
+                body: JSON.stringify({
+                    originalId: mailData.selectedEmail.id,
+                    content: replyText,
+                    attachments: replyAttachments.map(att => ({
+                        id: att.id,
+                        name: att.name,
+                        size: att.size,
+                        type: att.type,
+                        url: att.url
+                    }))
+                })
+            });
 
-        // TODO: Implement actual send functionality
-        setReplyText('');
-        setReplyAttachments([]);
+            if (!response.ok) throw new Error('Failed to send reply');
+
+            // Clear and refresh
+            setReplyText('');
+            setReplyAttachments([]);
+            await fetchMailData();
+        } catch (err) {
+            setError('Failed to send reply');
+        }
     };
 
-    const handleSendNewEmail = () => {
-        if (!newEmailTo.trim() || !newEmailSubject.trim() || !newEmailContent.trim()) return;
+    const handleSendNewEmail = async () => {
+        if (!user?.token || !newEmailTo.trim() || !newEmailSubject.trim()) return;
+        setIsSending(true);
+        try {
+            const response = await fetch(`${API_URL}/api/mail/send`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${user.token}`
+                },
+                body: JSON.stringify({
+                    recipientEmail: newEmailTo,
+                    subject: newEmailSubject,
+                    content: newEmailContent,
+                    attachments: replyAttachments.map(att => ({
+                        id: att.id,
+                        name: att.name,
+                        size: att.size,
+                        type: att.type,
+                        url: att.url
+                    }))
+                })
+            });
 
-        console.log('Sending new email:', {
-            to: newEmailTo,
-            subject: newEmailSubject,
-            content: newEmailContent,
-            attachments: replyAttachments
-        });
+            if (!response.ok) throw new Error('Failed to send email');
 
-        // TODO: Implement actual send functionality
-        setNewEmailTo('');
-        setNewEmailSubject('');
-        setNewEmailContent('');
-        setReplyAttachments([]);
-        setShowEmailContent(false);
+            // Clear state and show success
+            setNewEmailTo('');
+            setNewEmailSubject('');
+            setNewEmailContent('');
+            setReplyAttachments([]);
+            setShowEmailContent(false);
+
+            // Refresh emails
+            fetchMailData();
+        } catch (err) {
+            setError('Failed to send email');
+        } finally {
+            setIsSending(false);
+        }
     };
 
     const handleNewEmailEmojiSelect = (emoji: string) => {
@@ -239,42 +341,42 @@ John`,
         setReplyText(prev => prev + emoji);
     };
 
-    const handleAttachmentAdd = (files: FileList) => {
-        const newAttachments: Attachment[] = Array.from(files).map(file => {
-            const getFileType = (fileName: string): 'pdf' | 'image' | 'document' => {
-                const ext = fileName.split('.').pop()?.toLowerCase();
-                if (ext === 'pdf') return 'pdf';
-                if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) return 'image';
-                return 'document';
-            };
+    const handleAttachmentAdd = async (files: FileList) => {
+        if (!user?.token) return;
+        try {
+            const newAttachments = await Promise.all(
+                Array.from(files).map(async (file) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
 
-            const formatFileSize = (bytes: number) => {
-                if (bytes === 0) return '0 Bytes';
-                const k = 1024;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-            };
+                    const response = await fetch(`${API_URL}/api/upload`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            Authorization: `Bearer ${user?.token}`
+                        }
+                    });
 
-            return {
-                id: `reply_${Date.now()}_${Math.random()}`,
-                name: file.name,
-                size: formatFileSize(file.size),
-                type: getFileType(file.name),
-                file
-            };
-        });
+                    if (!response.ok) throw new Error('Upload failed');
+                    return await response.json();
+                })
+            );
 
-        setReplyAttachments(prev => [...prev, ...newAttachments]);
+            setReplyAttachments(prev => [...prev, ...newAttachments]);
+        } catch (err) {
+            setError('Failed to upload attachments');
+        }
     };
+
+
 
     const handleAttachmentRemove = (id: string) => {
         setReplyAttachments(prev => prev.filter(att => att.id !== id));
     };
 
     const handleDownloadAttachment = (attachment: Attachment) => {
-        console.log('Downloading attachment:', attachment.name);
-        // TODO: Implement actual download functionality
+        if (!attachment.url) return;
+        window.open(`${API_URL}${attachment.url}`, '_blank');
     };
 
     const handleDeleteEmailAttachment = (emailId: string, attachmentId: string) => {
@@ -310,9 +412,9 @@ John`,
                 isDarkMode={isDarkMode}
             />
 
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 {/* Header */}
-                <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4">
+                <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-4 flex-shrink-0">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-4 min-w-0">
                             <button
@@ -354,7 +456,7 @@ John`,
 
                 {/* Error Display */}
                 {error && (
-                    <div className="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex-shrink-0">
                         <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
                         <button
                             onClick={fetchMailData}
@@ -366,7 +468,7 @@ John`,
                 )}
 
                 {/* Main Content */}
-                <main className="flex-1 flex overflow-hidden">
+                <main className="flex-1 flex overflow-hidden min-h-0">
                     {/* Email List */}
                     <div className={`w-full lg:w-1/3 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto ${showEmailContent ? 'hidden lg:block' : 'block'
                         }`}>
@@ -390,7 +492,7 @@ John`,
                                 <div
                                     key={email.id}
                                     onClick={() => handleEmailSelect(email)}
-                                    className={`p-4 cursor-pointer transition-colors ${email.isSelected
+                                    className={`p-4 cursor-pointer transition-colors ${email.id === mailData.selectedEmail?.id
                                         ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500'
                                         : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                                         }`}
@@ -423,8 +525,8 @@ John`,
                     </div>
 
                     {/* Email Content */}
-                    <div className={`flex-1 flex-col bg-gray-50 dark:bg-gray-900 overflow-y-auto ${showEmailContent ? 'flex' : 'hidden lg:flex'
-                        }`}>
+                    <div className={`flex-1 flex-col bg-gray-50 dark:bg-gray-900 ${showEmailContent ? 'flex' : 'hidden lg:flex'
+                        } min-h-0`}>
                         {mailData.selectedEmail ? (
                             <>
                                 {/* Email Header */}
@@ -477,9 +579,9 @@ John`,
                                 </div>
 
                                 {/* Email Content */}
-                                <div className="flex-1 p-6 space-y-6">
+                                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                     {/* Original Message */}
-                                    <div className="flex">
+                                    {/* <div className="flex">
                                         <img
                                             src={mailData.selectedEmail.avatar}
                                             alt={`Profile of ${mailData.selectedEmail.sender}`}
@@ -498,7 +600,29 @@ John`,
                                                 {mailData.selectedEmail.content}
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> */}
+                                    {mailData.selectedEmail && (
+                                        <div className="flex">
+                                            <img
+                                                src={mailData.selectedEmail.avatar}
+                                                alt={`Profile of ${mailData.selectedEmail.sender}`}
+                                                className="h-10 w-10 rounded-full mr-4 mt-1 flex-shrink-0"
+                                            />
+                                            <div className="flex-1 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                                                        {mailData.selectedEmail.sender}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {mailData.selectedEmail.time}
+                                                    </span>
+                                                </div>
+                                                <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line">
+                                                    {mailData.selectedEmail.content}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Your Reply */}
                                     <div className="flex">
@@ -530,19 +654,19 @@ John`,
                                                     className="bg-blue-500 text-white hover:bg-blue-600 text-xs sm:text-sm"
                                                     size="sm"
                                                 >
-                                                    ✏️ Edit
+                                                    <img src="https://img.icons8.com/?size=15&id=11737&format=png&color=FFFFFF" alt="edit" /> Edit
                                                 </Button>
                                                 <Button
                                                     className="bg-purple-500 hover:bg-purple-600 text-white text-xs sm:text-sm"
                                                     size="sm"
                                                 >
-                                                    🔄 Regenerate
+                                                    <img src="https://img.icons8.com/?size=15&id=C19x5dib8DcR&format=png&color=FFFFFF" alt="reg" /> Regenerate
                                                 </Button>
                                                 <Button
                                                     className="bg-gray-400 text-black hover:bg-gray-500 text-xs sm:text-sm"
                                                     size="sm"
                                                 >
-                                                    ⏭️ Skip
+                                                    <img src="https://img.icons8.com/?size=15&id=91474&format=png&color=000000" alt="skip" /> Skip
                                                 </Button>
                                             </div>
                                         </div>
@@ -624,7 +748,7 @@ John`,
                                             disabled={!replyText.trim()}
                                             className='border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400'
                                         >
-                                            Send
+                                            <img src="https://img.icons8.com/?size=20&id=86032&format=png&color=385CE9" alt="send" />
                                         </Button>
                                     </div>
                                 </div>
@@ -665,7 +789,7 @@ John`,
                                 </div>
 
                                 {/* New Email Compose Section */}
-                                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-gray-400">
                                     <AttachmentUpload
                                         attachments={replyAttachments}
                                         onAttachmentAdd={handleAttachmentAdd}
@@ -678,10 +802,10 @@ John`,
                                         </div>
                                         <Button
                                             onClick={handleSendNewEmail}
-                                            disabled={!newEmailTo.trim() || !newEmailSubject.trim() || !newEmailContent.trim()}
+                                            disabled={isSending || !newEmailTo.trim() || !newEmailSubject.trim() || !newEmailContent.trim()}
                                             className="bg-blue-600 hover:bg-blue-700 text-white"
                                         >
-                                            Send Email
+                                            {isSending ? 'Sending...' : 'Send Email'}
                                         </Button>
                                     </div>
                                 </div>

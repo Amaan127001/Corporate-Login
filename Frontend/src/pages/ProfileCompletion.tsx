@@ -148,7 +148,7 @@ const ProfileCompletion = ({ toggleTheme }: { toggleTheme: () => void }) => {
     };
 
     try {
-      const resp = await fetch('http://localhost:4000/user/profile', {
+      const resp = await fetch('https://ingeniumai.onrender.com/user/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

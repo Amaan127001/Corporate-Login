@@ -35,49 +35,48 @@ const LoginCard = () => {
   // };
 
   const signIn = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        const resp = await fetch(
-          `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${tokenResponse.access_token}`
-        );
-        const user = await resp.json();
-        const email: string = user.email || '';
-        const isPersonal = ['@gmail.com', '@yahoo.com', '@outlook.com']
-          .some(d => email.endsWith(d));
+  flow: 'auth-code',
+  scope: 'openid profile email https://www.googleapis.com/auth/gmail.send',
+  onSuccess: async (codeResponse) => {
+    try {
+      const backendResp = await fetch('https://ingeniumai.onrender.com/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: codeResponse.code }),
+      });
 
-        if (isPersonal) {
-          setShowAlert(true);
-          return;
-        }
-
-        localStorage.setItem('user', JSON.stringify({
-          name: user.name,
-          email,
-          picture: user.picture,
-        }));
-
-        // Send access token to backend
-        const backendResp = await fetch('http://localhost:4000/auth/google', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ access_token: tokenResponse.access_token }),
-        });
-        const { token, profileCompleted, hasSelectedProfileType } = await backendResp.json();
-        localStorage.setItem('token', token);
-        localStorage.setItem('profileCompleted', profileCompleted);
-        localStorage.setItem('hasProfileType', hasSelectedProfileType);
-
-        if (!hasSelectedProfileType) navigate('/welcome');
-        else if (!profileCompleted) navigate('/profilecompletion');
-        else navigate('/dashboard');
-      } catch (err) {
-        console.error(err);
+      // Handle personal email response
+      if (backendResp.status === 403) {
+        const { error, message } = await backendResp.json();
+        setShowAlert(true);
+        return;
       }
-    },
-    onError: (err) => console.error(err),
-  });
+
+      // Handle other errors
+      if (!backendResp.ok) {
+        const errorData = await backendResp.json();
+        throw new Error(errorData.error || 'Authentication failed');
+      }
+
+      // Success case
+      const { user, token, profileCompleted, hasSelectedProfileType } = await backendResp.json();
+
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
+      localStorage.setItem('profileCompleted', profileCompleted);
+      localStorage.setItem('hasProfileType', hasSelectedProfileType);
+
+      // Navigation logic
+      if (!hasSelectedProfileType) navigate('/welcome');
+      else if (!profileCompleted) navigate('/profilecompletion');
+      else navigate('/dashboard');
+      
+    } catch (err) {
+      console.error('Authentication error:', err);
+    }
+  },
+  onError: (err) => console.error('Google login error:', err),
+});
 
 
   return (

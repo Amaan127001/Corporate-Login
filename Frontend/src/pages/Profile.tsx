@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
     User,
     Edit,
@@ -23,6 +24,9 @@ interface UserProfile {
     name: string;
     email: string;
     avatar?: string;
+    profileType: string;
+    profileDetails: Record<string, any>;
+    profileCompleted: boolean;
 }
 
 interface OrganizationUser {
@@ -32,6 +36,7 @@ interface OrganizationUser {
     avatar?: string;
     role: 'Admin' | 'Member';
 }
+
 
 interface ProfileProps {
     toggleTheme: () => void;
@@ -43,13 +48,35 @@ const Profile = ({ toggleTheme, isDarkMode }: ProfileProps) => {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const response = await fetch('https://ingeniumai.onrender.com/me', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                const data = await response.json();
+                setUserProfile(data);
+            } catch (err) {
+                console.error('Failed to fetch user profile:', err);
+            }
+        };
+
+        fetchUserProfile();
+    }, []);
+
     // Mock data - will be replaced with backend data
-    const [userProfile] = useState<UserProfile>({
-        id: '1',
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-    });
+    // const [userProfile] = useState<UserProfile>({
+    //     id: '1',
+    //     name: 'John Doe',
+    //     email: 'john.doe@example.com',
+    //     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+    // });
 
     const [organizationUsers] = useState<OrganizationUser[]>([
         {
@@ -180,45 +207,52 @@ const Profile = ({ toggleTheme, isDarkMode }: ProfileProps) => {
                         </Card>
 
                         {/* Organization Users */}
-                        <Card className="bg-white dark:bg-gray-800 shadow-lg">
-                            <CardHeader>
-                                <CardTitle className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-white">
-                                    Organisation Users
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-6 sm:p-8 pt-0">
-                                <div className="space-y-4">
-                                    {organizationUsers.map((user) => (
-                                        <div key={user.id} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="w-8 h-8 sm:w-10 sm:h-10">
-                                                    <AvatarImage src={user.avatar} alt={user.name} />
-                                                    <AvatarFallback className="text-sm">
-                                                        {user.name.split(' ').map(n => n[0]).join('')}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        {user.name}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        {user.email}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <span
-                                                className={`text-xs font-medium px-2 py-1 rounded-full ${user.role === 'Admin'
-                                                    ? 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30'
-                                                    : 'text-gray-600 bg-gray-200 dark:text-gray-300 dark:bg-gray-600'
-                                                    }`}
+                        {/* Show Organisation Users only if profileType is 'organisation' */}
+                        {userProfile?.profileType === 'organization' && (
+                            <Card className="bg-white dark:bg-gray-800 shadow-lg">
+                                <CardHeader>
+                                    <CardTitle className="text-xl sm:text-2xl font-semibold text-gray-800 dark:text-white">
+                                        Organisation Users
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-6 sm:p-8 pt-0">
+                                    <div className="space-y-4">
+                                        {organizationUsers.map((user) => (
+                                            <div
+                                                key={user.id}
+                                                className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
                                             >
-                                                {user.role}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="w-8 h-8 sm:w-10 sm:h-10">
+                                                        <AvatarImage src={user.avatar} alt={user.name} />
+                                                        <AvatarFallback className="text-sm">
+                                                            {user.name.split(' ').map((n) => n[0]).join('')}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                            {user.name}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                            {user.email}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span
+                                                    className={`text-xs font-medium px-2 py-1 rounded-full ${user.role === 'Admin'
+                                                        ? 'text-purple-600 bg-purple-100 dark:text-purple-400 dark:bg-purple-900/30'
+                                                        : 'text-gray-600 bg-gray-200 dark:text-gray-300 dark:bg-gray-600'
+                                                        }`}
+                                                >
+                                                    {user.role}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
 
                         {/* Account Settings */}
                         <Card className="bg-white dark:bg-gray-800 shadow-lg">

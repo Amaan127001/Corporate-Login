@@ -18,7 +18,7 @@ const ProfileSelection = ({ toggleTheme }: ProfileSelectionProps) => {
     const token = localStorage.getItem('token');
     if (!token) return alert('Not authenticated');
 
-    const resp = await fetch('http://localhost:4000/user/type', {
+    const resp = await fetch('https://ingeniumai.onrender.com/user/type', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, profileType: selectedOption })
