@@ -1,6 +1,6 @@
 [build]
   base = "Frontend"
-  publish = "Frontend/build"
+  publish = "build"
   command = "npm run build"
 
 [secrets]
