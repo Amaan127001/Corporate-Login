@@ -1,7 +1,0 @@
-[build]
-  base = "Frontend"
-  publish = "build"
-  command = "npm run build"
-
-[secrets]
-  scan_omit_keys = ["REACT_APP_API_URL", "REACT_APP_GOOGLE_CLIENT_ID"]
