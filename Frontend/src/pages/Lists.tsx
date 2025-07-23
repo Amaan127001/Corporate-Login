@@ -62,7 +62,7 @@ const Lists = ({ toggleTheme, isDarkMode }: ListsProps) => {
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
   const [linkedinUrl, setLinkedinUrl] = useState('');
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+  const API_BASE_URL = process.env.REACT_APP_API_URL;
 
   // Get auth token from localStorage
   const getAuthToken = () => {
