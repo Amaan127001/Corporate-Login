@@ -17,6 +17,7 @@ import Mail from './pages/Mail';
 import Lists from './pages/Lists';
 import Profile from './pages/Profile';
 import Campaigns from './pages/Campaigns';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ function AppRoutes() {
       <Route path="/lists" element={<Lists toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
       <Route path="/campaigns" element={<Campaigns toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
       <Route path="/profile" element={<Profile toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="*" element={<NotFound/>} />
     </Routes>
   );
