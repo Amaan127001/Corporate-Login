@@ -18,6 +18,7 @@ import Lists from './pages/Lists';
 import Profile from './pages/Profile';
 import Campaigns from './pages/Campaigns';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import SelectList from './pages/SelectList';
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -28,8 +29,8 @@ function AppRoutes() {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (darkMode) { root.classList.add('dark'); localStorage.setItem('theme','dark'); }
-    else { root.classList.remove('dark'); localStorage.setItem('theme','light'); }
+    if (darkMode) { root.classList.add('dark'); localStorage.setItem('theme', 'dark'); }
+    else { root.classList.remove('dark'); localStorage.setItem('theme', 'light'); }
   }, [darkMode]);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ function AppRoutes() {
           navigate('/welcome');
         } else if (profileType && !profileCompleted && pathname !== '/profilecompletion') {
           navigate('/profilecompletion');
-        } else if (profileType && profileCompleted && ['/','/welcome','/profilecompletion'].includes(pathname)) {
+        } else if (profileType && profileCompleted && ['/', '/welcome', '/profilecompletion'].includes(pathname)) {
           navigate('/dashboard');
         }
       } catch {
@@ -66,18 +67,21 @@ function AppRoutes() {
   if (!checked) return null;
 
   return (
-    <Routes>
-      <Route path="/" element={<Home toggleTheme={() => setDarkMode(p => !p)} />} />
-      <Route path="/welcome" element={<Welcome toggleTheme={() => setDarkMode(p => !p)} />} />
-      <Route path="/profilecompletion" element={<ProfileCompletion toggleTheme={() => setDarkMode(p => !p)} />} />
-      <Route path="/dashboard" element={<Dashboard toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
-      <Route path="/mail" element={<Mail toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
-      <Route path="/lists" element={<Lists toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
-      <Route path="/campaigns" element={<Campaigns toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
-      <Route path="/profile" element={<Profile toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home toggleTheme={() => setDarkMode(p => !p)} />} />
+        <Route path="/welcome" element={<Welcome toggleTheme={() => setDarkMode(p => !p)} />} />
+        <Route path="/profilecompletion" element={<ProfileCompletion toggleTheme={() => setDarkMode(p => !p)} />} />
+        <Route path="/dashboard" element={<Dashboard toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
+        <Route path="/mail" element={<Mail toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
+        <Route path="/lists" element={<Lists toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
+        <Route path="/campaigns" element={<Campaigns toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
+        <Route path="/profile" element={<Profile toggleTheme={() => setDarkMode(p => !p)} isDarkMode={darkMode} />} />
+        <Route path="/selectlist" element={<SelectList toggleTheme={() => setDarkMode(prev => !prev)} isDarkMode={darkMode} />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="*" element={<NotFound/>} />
-    </Routes>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
   );
 }
 

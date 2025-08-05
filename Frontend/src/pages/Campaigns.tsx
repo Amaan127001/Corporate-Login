@@ -11,6 +11,7 @@ import {
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import Sidebar from '../components/Sidebar';
+import { useNavigate } from 'react-router-dom';
 
 
 interface CampProps {
@@ -20,16 +21,19 @@ interface CampProps {
 
 
 const Campaigns = ({ toggleTheme, isDarkMode }: CampProps) => {
+    const navigate = useNavigate();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
 
     const handleCopilotMode = () => {
         // Future: Navigate to copilot campaign creation flow
+        navigate('/selectlist');
         console.log('Starting Copilot Mode');
     };
 
     const handleAutopilotMode = () => {
         // Future: Navigate to autopilot campaign creation flow
+        navigate('/selectlist');
         console.log('Launching Autopilot Mode');
     };
 
